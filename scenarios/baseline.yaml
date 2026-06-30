@@ -1,0 +1,10 @@
+# Stable circadian rhythms with realistic correlated noise and no disruptions.
+# Used for Exp A (metric correctness): the pipeline should recover the ground-truth params.
+name: baseline
+description: Stable rhythms, correlated noise, no disruptions (Exp A correctness).
+patients: 3
+simHours: 48
+rateHz: 1.0
+fidelity:
+  noiseCorrelation: 0.7   # mild autocorrelation; does not bias Cosinor point estimates
+disruptions: []

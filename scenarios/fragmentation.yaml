@@ -1,0 +1,17 @@
+# The coherent 24 h rhythm breaks into short bouts for HR (high intra-daily variability).
+name: fragmentation
+description: Rhythm fragments into short bouts for HR over days 2-3.
+patients: 4
+simHours: 72
+rateHz: 1.0
+fidelity:
+  noiseCorrelation: 0.6
+disruptions:
+  - patients: [all]
+    signals: [HR]
+    type: fragmentation
+    startHour: 24
+    endHour: 60
+    magnitude: 0.8        # intensity of the fragmenting bouts
+    rampHours: 6
+    boutHours: 0.5        # ~30-min on/off bouts

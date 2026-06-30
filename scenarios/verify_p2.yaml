@@ -1,0 +1,19 @@
+# Phase 2 verification: P0001's HR rhythm flattens over days 3-4 while P0002 is an untouched control.
+# Expect: Cosinor amplitude for P0001/HR falls after the onset; P0002/HR stays stable; CWT CRI for
+# P0001/HR declines. Low rate keeps volume small (Stage 2 emits one row/min regardless of rate).
+name: verify_p2
+description: One disrupted HR (P0001) vs a control (P0002), 4 days, for Stage 3 verification.
+patients: 2
+simHours: 96
+rateHz: 0.2
+fidelity:
+  noiseCorrelation: 0.7
+  artifactRate: 0.001
+disruptions:
+  - patients: [P0001]
+    signals: [HR]
+    type: amplitude_drop
+    startHour: 48
+    endHour: 96
+    magnitude: 0.2        # flatten P0001's HR rhythm to 20%
+    rampHours: 12

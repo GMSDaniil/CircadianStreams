@@ -1,0 +1,21 @@
+# Mixed cohort for RQ3 (Exp D): variable rhythm strength across patients, plus an amplitude-drop
+# disruption on the second half of the cohort. Patients with low amplitude / a disruption are the
+# "disrupted" group; the rest are "preserved". Ground truth records the true amplitude per patient.
+name: cohort
+description: Mixed cohort - variable rhythm strength + disruptions on a subset (Exp D / RQ3).
+patients: 8
+simHours: 48
+rateHz: 1.0
+fidelity:
+  noiseCorrelation: 0.8
+  artifactRate: 0.001
+  amplitudeScaleMin: 0.3   # some patients have a blunted rhythm
+  amplitudeScaleMax: 1.0
+disruptions:
+  - patients: [P0005, P0006, P0007, P0008]
+    signals: [HR, ABP_SYS]
+    type: amplitude_drop
+    startHour: 24
+    endHour: 48
+    magnitude: 0.3
+    rampHours: 12

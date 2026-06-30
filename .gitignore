@@ -1,0 +1,48 @@
+# --- Build output ---
+target/
+*.class
+
+# --- Maven ---
+.mvn/wrapper/maven-wrapper.jar
+release.properties
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+
+# --- IDE: IntelliJ ---
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# --- IDE: Eclipse / VS Code ---
+.settings/
+.project
+.classpath
+.factorypath
+.vscode/
+
+# --- OS cruft ---
+Thumbs.db
+ehthumbs.db
+.DS_Store
+Desktop.ini
+
+# --- Logs & temp ---
+*.log
+logs/
+tmp/
+
+# --- Python (evaluation module) ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+evaluation/figures/
+
+# --- Local env overrides ---
+.env.local
+*.local

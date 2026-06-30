@@ -1,0 +1,81 @@
+# Local development infrastructure for the circadian pipeline.
+#   - Kafka     single-node KRaft broker (message bus, topic: vitals-raw)
+#   - Postgres  metrics + ground-truth store (auto-initialised from ./sql/init)
+#   - Grafana   dashboard (Postgres datasource provisioned as code)
+#
+# Host processes (generator, pipeline, api) connect to:
+#   Kafka     -> localhost:9092
+#   Postgres  -> localhost:5544   (db=circadian user=circadian pass=circadian)
+#                (5544 not 5432: the default Postgres port commonly collides with a host-native Postgres; the container's internal port stays 5432)
+#   Grafana   -> http://localhost:3000  (admin/admin)
+#
+# Bring up:  docker compose up -d        Tear down (keep data):  docker compose down
+# Wipe data: docker compose down -v
+
+services:
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: circadian-kafka
+    ports:
+      - "9092:9092"          # host clients (generator/pipeline) connect to localhost:9092
+    environment:
+      # Single-node KRaft.
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://localhost:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  postgres:
+    image: postgres:16
+    container_name: circadian-postgres
+    ports:
+      - "5544:5432"   # host 5544 -> container 5432 (avoids host-native Postgres on 5432)
+    environment:
+      POSTGRES_USER: circadian
+      POSTGRES_PASSWORD: circadian
+      POSTGRES_DB: circadian
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d:ro   # schema applied on first start
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U circadian -d circadian"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: circadian-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"        # convenience for local dashboard viewing
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro   # provisioned dashboard JSON
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  grafana-data:

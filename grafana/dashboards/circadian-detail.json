@@ -1,0 +1,173 @@
+{
+  "uid": "circadian-detail",
+  "title": "Circadian — Patient Detail",
+  "tags": ["circadian"],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "",
+  "time": { "from": "2026-06-01T00:00:00.000Z", "to": "2026-06-06T00:00:00.000Z" },
+  "templating": {
+    "list": [
+      {
+        "name": "patient",
+        "label": "Patient",
+        "type": "query",
+        "datasource": { "uid": "circadian-postgres" },
+        "query": "SELECT DISTINCT patient_id FROM agg_1min ORDER BY 1",
+        "definition": "SELECT DISTINCT patient_id FROM agg_1min ORDER BY 1",
+        "current": { "text": "P0001", "value": "P0001" },
+        "refresh": 1,
+        "sort": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "signal",
+        "label": "Signal",
+        "type": "query",
+        "datasource": { "uid": "circadian-postgres" },
+        "query": "SELECT DISTINCT signal_type FROM agg_1min ORDER BY 1",
+        "definition": "SELECT DISTINCT signal_type FROM agg_1min ORDER BY 1",
+        "current": { "text": "HR", "value": "HR" },
+        "refresh": 1,
+        "sort": 1,
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Median (1-min) — $patient / $signal",
+      "datasource": { "uid": "circadian-postgres" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "uid": "circadian-postgres" },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT window_start AS time, median FROM agg_1min WHERE patient_id = '$patient' AND signal_type = '$signal' AND $__timeFilter(window_start) ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Cosinor amplitude — $patient / $signal",
+      "datasource": { "uid": "circadian-postgres" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "uid": "circadian-postgres" },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT window_end AS time, amplitude FROM circadian_metrics WHERE method = 'cosinor' AND patient_id = '$patient' AND signal_type = '$signal' AND $__timeFilter(window_end) ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "CWT — Circadian Rhythm Index (CRI)",
+      "datasource": { "uid": "circadian-postgres" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "min": 0, "max": 1, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15 } }, "overrides": [] },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "uid": "circadian-postgres" },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT window_end AS time, cri FROM circadian_metrics WHERE method = 'cwt' AND patient_id = '$patient' AND signal_type = '$signal' AND $__timeFilter(window_end) ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Cosinor goodness-of-fit (R²)",
+      "datasource": { "uid": "circadian-postgres" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "fieldConfig": { "defaults": { "min": 0, "max": 1, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "uid": "circadian-postgres" },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT window_end AS time, r2 FROM circadian_metrics WHERE method = 'cosinor' AND patient_id = '$patient' AND signal_type = '$signal' AND $__timeFilter(window_end) ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Non-parametric IS / IV",
+      "datasource": { "uid": "circadian-postgres" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "uid": "circadian-postgres" },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT window_end AS time, is_stability AS \"IS\", iv_variab AS \"IV\" FROM circadian_metrics WHERE method = 'isiv' AND patient_id = '$patient' AND signal_type = '$signal' AND $__timeFilter(window_end) ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Latest Cosinor per patient / signal",
+      "datasource": { "uid": "circadian-postgres" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 16 },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "uid": "circadian-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT DISTINCT ON (patient_id, signal_type) patient_id, signal_type, round(amplitude::numeric, 2) AS amplitude, round(r2::numeric, 3) AS r2, window_end FROM circadian_metrics WHERE method = 'cosinor' ORDER BY patient_id, signal_type, window_end DESC"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Injected disruptions (ground truth)",
+      "datasource": { "uid": "circadian-postgres" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 16 },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "uid": "circadian-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT patient_id, signal_type, event_type, start_time, end_time, magnitude FROM ground_truth_events ORDER BY start_time"
+        }
+      ]
+    }
+  ]
+}

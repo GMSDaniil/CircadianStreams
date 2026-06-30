@@ -1,0 +1,18 @@
+# Tiny scenario for fast end-to-end verification: 2 patients, ~16 h, one HR amplitude drop and a
+# high artifact rate so ground_truth_events and the dead_letter table both populate quickly.
+name: smoke
+description: Small verification scenario (disruption + artifacts) for a quick end-to-end check.
+patients: 2
+simHours: 16
+rateHz: 1.0
+fidelity:
+  noiseCorrelation: 0.8
+  artifactRate: 0.01      # ~1% out-of-range -> visible dead-letter rows
+disruptions:
+  - patients: [all]
+    signals: [HR]
+    type: amplitude_drop
+    startHour: 4
+    endHour: 16
+    magnitude: 0.3
+    rampHours: 3

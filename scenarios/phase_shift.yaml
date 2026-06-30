@@ -1,0 +1,16 @@
+# Gradual +6 h acrophase shift from day 2 (jet-lag-like) for HR and RR.
+name: phase_shift
+description: Gradual +6 h acrophase shift from day 2 for HR and RR.
+patients: 4
+simHours: 72
+rateHz: 1.0
+fidelity:
+  noiseCorrelation: 0.8
+disruptions:
+  - patients: [all]
+    signals: [HR, RR]
+    type: phase_shift
+    startHour: 36
+    endHour: 72
+    magnitude: 6          # peak moves 6 hours later
+    rampHours: 12

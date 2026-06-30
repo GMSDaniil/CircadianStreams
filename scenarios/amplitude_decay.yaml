@@ -1,0 +1,18 @@
+# Gradual amplitude flattening from day 2 onward for HR and systolic ABP.
+# The non-stationary case CWT should detect earlier than Cosinor (Exp B / RQ2).
+name: amplitude_decay
+description: Gradual amplitude flattening over days 2-3 for HR and ABP_SYS.
+patients: 4
+simHours: 72
+rateHz: 1.0
+fidelity:
+  noiseCorrelation: 0.8
+  artifactRate: 0.002     # occasional out-of-range artifacts -> Stage 1 dead-letter
+disruptions:
+  - patients: [all]
+    signals: [HR, ABP_SYS]
+    type: amplitude_drop
+    startHour: 24
+    endHour: 72
+    magnitude: 0.25       # flatten to 25% of baseline amplitude
+    rampHours: 12         # gradual onset/offset
