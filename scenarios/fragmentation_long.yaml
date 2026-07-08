@@ -1,0 +1,20 @@
+# Long scenario for Experiment B (CWT-vs-Cosinor detection latency).
+#
+# ~7 days of clean baseline (so the 5-day CWT window fills), then HR fragmentation into short bouts from day 7, sustained to the end.
+name: fragmentation_long
+description: 14 days; HR fragments into short bouts from day 7 (detection-latency experiment).
+patients: 4
+simHours: 336
+rateHz: 0.1
+fidelity:
+  noiseCorrelation: 0.6
+  artifactRate: 0.001
+disruptions:
+  - patients: [all]
+    signals: [HR]
+    type: fragmentation
+    startHour: 168      # onset at day 7
+    endHour: 336
+    magnitude: 0.8      # intensity of the fragmenting bouts
+    rampHours: 12
+    boutHours: 0.5      # ~30-min on/off bouts

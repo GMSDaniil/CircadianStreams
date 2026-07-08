@@ -34,6 +34,11 @@ public final class GroundTruthWriter implements AutoCloseable {
                     + "end_time = EXCLUDED.end_time, magnitude = EXCLUDED.magnitude, "
                     + "params_json = EXCLUDED.params_json";
 
+    private static final String INSERT_RUN =
+            "INSERT INTO experiment_runs (run_id, scenario, seed, started_at, notes) "
+                    + "VALUES (?, ?, ?, ?, ?) "
+                    + "ON CONFLICT (run_id) DO NOTHING";
+
     private final Connection connection;
 
     public GroundTruthWriter(String jdbcUrl, String user, String password) throws SQLException {
@@ -63,6 +68,18 @@ public final class GroundTruthWriter implements AutoCloseable {
             ps.setObject(5, OffsetDateTime.ofInstant(end, ZoneOffset.UTC));
             ps.setDouble(6, magnitude);
             ps.setString(7, paramsJson);
+            ps.executeUpdate();
+        }
+    }
+
+    // Bookkeeping: one row per generation run so every downstream figure ties back to (seed, scenario).
+    public void writeRun(String runId, String scenario, long seed, String notes) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(INSERT_RUN)) {
+            ps.setString(1, runId);
+            ps.setString(2, scenario);
+            ps.setLong(3, seed);
+            ps.setObject(4, OffsetDateTime.now(ZoneOffset.UTC));
+            ps.setString(5, notes);
             ps.executeUpdate();
         }
     }

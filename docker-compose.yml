@@ -3,11 +3,16 @@
 #   - Postgres  metrics + ground-truth store (auto-initialised from ./sql/init)
 #   - Grafana   dashboard (Postgres datasource provisioned as code)
 #
-# Host processes (generator, pipeline, api) connect to:
+# Host processes (generator, api) connect to:
 #   Kafka     -> localhost:9092
 #   Postgres  -> localhost:5544   (db=circadian user=circadian pass=circadian)
 #                (5544 not 5432: the default Postgres port commonly collides with a host-native Postgres; the container's internal port stays 5432)
 #   Grafana   -> http://localhost:3000  (admin/admin)
+#
+# The pipeline runs INSIDE the Flink cluster (no longer `java -jar`). After `mvn package`, submit it:
+#   docker compose exec jobmanager flink run -d /jars/circadian-pipeline.jar
+#   Flink Web UI -> http://localhost:8081
+# On the compose network the pipeline reaches services as kafka:19092 and postgres:5432.
 #
 # Bring up:  docker compose up -d        Tear down (keep data):  docker compose down
 # Wipe data: docker compose down -v
@@ -16,6 +21,7 @@ services:
   kafka:
     image: apache/kafka:3.9.0
     container_name: circadian-kafka
+    restart: unless-stopped
     ports:
       - "9092:9092"          # host clients (generator/pipeline) connect to localhost:9092
     environment:
@@ -25,14 +31,16 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://localhost:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:19092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://localhost:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 2
+      KAFKA_LOG_RETENTION_BYTES: 1073741824
     healthcheck:
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
       interval: 10s
@@ -43,6 +51,7 @@ services:
   postgres:
     image: postgres:16
     container_name: circadian-postgres
+    restart: unless-stopped
     ports:
       - "5544:5432"   # host 5544 -> container 5432 (avoids host-native Postgres on 5432)
     environment:
@@ -61,6 +70,7 @@ services:
   grafana:
     image: grafana/grafana:11.3.0
     container_name: circadian-grafana
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
@@ -72,10 +82,83 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro   # provisioned dashboard JSON
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     depends_on:
       postgres:
         condition: service_healthy
 
+  # --- Flink standalone session cluster ---
+  flink-init:
+    image: flink:2.2.0-java17
+    container_name: circadian-flink-init
+    user: root
+    command: chown -R flink:flink /flink-checkpoints
+    volumes:
+      - flink-checkpoints:/flink-checkpoints
+    restart: "no"
+
+  # A long-running cluster you submit jobs to. After `mvn package`:
+  #   docker compose exec jobmanager flink run -d /jars/circadian-pipeline.jar
+  jobmanager:
+    image: flink:2.2.0-java17
+    container_name: circadian-jobmanager
+    restart: unless-stopped
+    ports:
+      - "8081:8081" # Flink Web UI
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+      - KAFKA_BOOTSTRAP=kafka:19092
+      - KAFKA_TOPIC=vitals-raw
+      - JDBC_URL=jdbc:postgresql://postgres:5432/circadian
+      - JDBC_USER=circadian
+      - JDBC_PASSWORD=circadian
+      - STATE_BACKEND=rocksdb
+      - CHECKPOINT_DIR=file:///flink-checkpoints
+    volumes:
+      - ./pipeline/target:/jars:ro # the built job jar, for `flink run`
+      - flink-checkpoints:/flink-checkpoints # shared checkpoint storage
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      flink-init:
+        condition: service_completed_successfully
+
+  taskmanager:
+    image: flink:2.2.0-java17
+    container_name: circadian-taskmanager
+    restart: unless-stopped
+    command: taskmanager
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 4
+      - KAFKA_BOOTSTRAP=kafka:19092
+      - JDBC_URL=jdbc:postgresql://postgres:5432/circadian
+      - JDBC_USER=circadian
+      - JDBC_PASSWORD=circadian
+      - STATE_BACKEND=rocksdb
+      - CHECKPOINT_DIR=file:///flink-checkpoints
+    volumes:
+      - flink-checkpoints:/flink-checkpoints
+    depends_on:
+      jobmanager:
+        condition: service_started
+      flink-init:
+        condition: service_completed_successfully
+
 volumes:
   pgdata:
   grafana-data:
+  flink-checkpoints:

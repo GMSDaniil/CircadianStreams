@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.OptionalDouble;
 import java.util.Properties;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 // Synthetic vital-sign generator.
@@ -83,15 +84,15 @@ public final class GeneratorMain implements Callable<Integer> {
     public Integer call() throws Exception {
         Scenario scenario = (scenarioPath != null) ? ScenarioLoader.load(scenarioPath) : Scenario.cleanDefault(patients, simHours, rateHz);
 
+        String runId = UUID.randomUUID().toString();
         Instant start = Instant.parse(startIso);
         List<Stream> streams = buildStreams(scenario);
         long totalSteps = Math.round(scenario.simHours * 3600.0 * scenario.rateHz);
 
-        LOG.info("Scenario '{}': patients={} signals={} streams={} seed={} simHours={} rateHz={} disruptionSpecs={} start={}",
-                scenario.name, scenario.patients, SignalType.values().length, streams.size(), seed, scenario.simHours, scenario.rateHz, scenario.disruptions.size(), start);
+        LOG.info("Run id {} — scenario '{}': patients={} signals={} streams={} seed={} simHours={} rateHz={} disruptionSpecs={} start={}", runId, scenario.name, scenario.patients, SignalType.values().length, streams.size(), seed, scenario.simHours, scenario.rateHz, scenario.disruptions.size(), start);
 
         if (!skipGroundTruth) {
-            writeGroundTruth(streams, start);
+            writeGroundTruth(streams, start, runId, scenario.name);
         } else {
             LOG.warn("Skipping ground-truth write (--skip-ground-truth).");
         }
@@ -131,8 +132,9 @@ public final class GeneratorMain implements Callable<Integer> {
         return lo + (hi - lo) * rng.nextDouble();
     }
 
-    private void writeGroundTruth(List<Stream> streams, Instant start) throws Exception {
+    private void writeGroundTruth(List<Stream> streams, Instant start, String runId, String scenarioName) throws Exception {
         try (GroundTruthWriter writer = new GroundTruthWriter(jdbcUrl, jdbcUser, jdbcPassword)) {
+            writer.writeRun(runId, scenarioName, seed, "generator run for scenario '" + scenarioName + "'");
             for (Stream s : streams) {
                 writer.writeParams(s.patientId(), s.baseline());
             }

@@ -16,6 +16,10 @@ import de.tuberlin.circadian.pipeline.validation.RangeValidator;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
+import org.apache.flink.configuration.CheckpointingOptions;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestartStrategyOptions;
+import org.apache.flink.configuration.StateBackendOptions;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
@@ -33,8 +37,20 @@ public final class PipelineJob {
         PipelineConfig config = PipelineConfig.fromEnv();
         LOG.info("Starting circadian pipeline with {}", config);
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration flinkConf = new Configuration();
+        flinkConf.set(StateBackendOptions.STATE_BACKEND, config.stateBackend);
+        flinkConf.set(CheckpointingOptions.CHECKPOINT_STORAGE, "filesystem");
+        flinkConf.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, config.checkpointDir);
+        flinkConf.set(RestartStrategyOptions.RESTART_STRATEGY, "fixed-delay");
+        flinkConf.set(RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_ATTEMPTS, config.restartAttempts);
+        flinkConf.set(RestartStrategyOptions.RESTART_STRATEGY_FIXED_DELAY_DELAY,
+                Duration.ofSeconds(config.restartDelaySeconds));
+
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment(flinkConf);
         env.setParallelism(config.parallelism);
+        if (config.checkpointIntervalMs > 0) {
+            env.enableCheckpointing(config.checkpointIntervalMs);
+        }
 
         VitalsSource source = new SyntheticSource(config);
         DataStream<VitalSample> ingested = source.create(env);

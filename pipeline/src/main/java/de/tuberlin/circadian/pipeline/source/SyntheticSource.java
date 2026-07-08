@@ -9,11 +9,16 @@ import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.util.Collector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 
 // Reads the synthetic generator's vitals-raw Kafka topic and produces an event-time stream of VitalSample.
 public final class SyntheticSource implements VitalsSource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SyntheticSource.class);
 
     private final PipelineConfig config;
 
@@ -31,13 +36,22 @@ public final class SyntheticSource implements VitalsSource {
                 .build();
 
         WatermarkStrategy<VitalSample> watermarks = WatermarkStrategy.<VitalSample>forBoundedOutOfOrderness(Duration.ofSeconds(config.maxOutOfOrdernessSeconds))
-                .withTimestampAssigner((sample, ts) -> sample.getTimestamp().toEpochMilli());
+                .withTimestampAssigner((sample, ts) -> sample.getTimestamp().toEpochMilli())
+                .withIdleness(Duration.ofSeconds(config.idlenessSeconds));
 
         return env.fromSource(kafka, WatermarkStrategy.noWatermarks(), "kafka-vitals-raw")
-                .map(VitalSampleCodec::fromJson)
+                .flatMap(SyntheticSource::tryParse)
                 .returns(VitalSample.class)
                 .name("parse-json")
                 .assignTimestampsAndWatermarks(watermarks)
                 .name("assign-event-time");
+    }
+
+    private static void tryParse(String json, Collector<VitalSample> out) {
+        try {
+            out.collect(VitalSampleCodec.fromJson(json));
+        } catch (RuntimeException e) {
+            LOG.warn("Dropping unparseable vitals record: {}", e.getMessage());
+        }
     }
 }

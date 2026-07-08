@@ -46,3 +46,5 @@ evaluation/figures/
 # --- Local env overrides ---
 .env.local
 *.local
+
+light-ceiling.html

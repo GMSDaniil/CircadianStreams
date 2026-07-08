@@ -1,0 +1,19 @@
+# Long scenario for Experiment B (CWT-vs-Cosinor detection latency).
+#
+# ~7 days of clean baseline (so the 5-day CWT window fills), then a gradual +6 h acrophase shift of HR + RR from day 7, sustained to the end.
+name: phase_shift_long
+description: 14 days; HR+RR acrophase shifts +6 h from day 7 (detection-latency experiment).
+patients: 4
+simHours: 336
+rateHz: 0.1
+fidelity:
+  noiseCorrelation: 0.8
+  artifactRate: 0.001
+disruptions:
+  - patients: [all]
+    signals: [HR, RR]
+    type: phase_shift
+    startHour: 168      # onset at day 7
+    endHour: 336
+    magnitude: 6        # peak moves 6 hours later
+    rampHours: 24       # gradual over ~1 day

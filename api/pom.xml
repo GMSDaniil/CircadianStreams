@@ -24,6 +24,10 @@
             <artifactId>circadian-common</artifactId>
         </dependency>
         <dependency>
+            <groupId>de.tuberlin.circadian</groupId>
+            <artifactId>circadian-analytics</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
         </dependency>

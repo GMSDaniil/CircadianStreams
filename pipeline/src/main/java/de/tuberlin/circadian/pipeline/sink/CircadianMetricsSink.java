@@ -2,27 +2,17 @@ package de.tuberlin.circadian.pipeline.sink;
 
 import de.tuberlin.circadian.pipeline.PipelineConfig;
 import de.tuberlin.circadian.pipeline.model.CircadianMetric;
-import org.apache.flink.api.connector.sink2.Sink;
-import org.apache.flink.api.connector.sink2.SinkWriter;
-import org.apache.flink.api.connector.sink2.WriterInitContext;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
-/**
- * Writes Stage 3 circadian metrics to the Postgres circadian_metrics table (Flink Sink V2).
- * One row per (patient, signal, method, window_end); upserted so reprocessing is idempotent.
- * Method-specific columns that don't apply are written as SQL NULL.
- */
-public final class CircadianMetricsSink implements Sink<CircadianMetric> {
+// Batched Sink writing Stage 3 circadian metrics to {@code circadian_metrics}: one row per (patient, signal, method, window_end), upserted. Method-specific columns that don't apply are written as SQL NULL.
+public final class CircadianMetricsSink extends JdbcSink<CircadianMetric> {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
     private static final String UPSERT =
             "INSERT INTO circadian_metrics "
@@ -34,66 +24,35 @@ public final class CircadianMetricsSink implements Sink<CircadianMetric> {
                     + "acrophase = EXCLUDED.acrophase, r2 = EXCLUDED.r2, cri = EXCLUDED.cri, "
                     + "is_stability = EXCLUDED.is_stability, iv_variab = EXCLUDED.iv_variab";
 
-    private final PipelineConfig config;
-
     public CircadianMetricsSink(PipelineConfig config) {
-        this.config = config;
+        super(config);
     }
 
     @Override
-    public SinkWriter<CircadianMetric> createWriter(WriterInitContext context) throws IOException {
-        try {
-            return new JdbcWriter(config);
-        } catch (SQLException e) {
-            throw new IOException("Could not open Postgres connection at " + config.jdbcUrl, e);
-        }
+    protected String sql() {
+        return UPSERT;
     }
 
-    private static final class JdbcWriter implements SinkWriter<CircadianMetric> {
+    @Override
+    protected void bind(PreparedStatement ps, CircadianMetric m) throws SQLException {
+        ps.setString(1, m.getPatientId());
+        ps.setString(2, m.getSignalType());
+        ps.setString(3, m.getMethod());
+        ps.setObject(4, OffsetDateTime.ofInstant(m.getWindowEnd(), ZoneOffset.UTC));
+        setNullableDouble(ps, 5, m.getMesor());
+        setNullableDouble(ps, 6, m.getAmplitude());
+        setNullableDouble(ps, 7, m.getAcrophase());
+        setNullableDouble(ps, 8, m.getR2());
+        setNullableDouble(ps, 9, m.getCri());
+        setNullableDouble(ps, 10, m.getIsStability());
+        setNullableDouble(ps, 11, m.getIvVariab());
+    }
 
-        private final Connection connection;
-        private final PreparedStatement upsert;
-
-        JdbcWriter(PipelineConfig config) throws SQLException {
-            this.connection = DriverManager.getConnection(config.jdbcUrl, config.jdbcUser, config.jdbcPassword);
-            this.connection.setAutoCommit(true);
-            this.upsert = connection.prepareStatement(UPSERT);
-        }
-
-        @Override
-        public void write(CircadianMetric m, Context context) throws IOException {
-            try {
-                upsert.setString(1, m.getPatientId());
-                upsert.setString(2, m.getSignalType());
-                upsert.setString(3, m.getMethod());
-                upsert.setObject(4, OffsetDateTime.ofInstant(m.getWindowEnd(), ZoneOffset.UTC));
-                setNullableDouble(5, m.getMesor());
-                setNullableDouble(6, m.getAmplitude());
-                setNullableDouble(7, m.getAcrophase());
-                setNullableDouble(8, m.getR2());
-                setNullableDouble(9, m.getCri());
-                setNullableDouble(10, m.getIsStability());
-                setNullableDouble(11, m.getIvVariab());
-                upsert.executeUpdate();
-            } catch (SQLException e) {
-                throw new IOException("Failed to upsert metric: " + m.getMethod(), e);
-            }
-        }
-
-        private void setNullableDouble(int idx, Double value) throws SQLException {
-            if (value == null || value.isNaN()) {
-                upsert.setNull(idx, Types.DOUBLE);
-            } else {
-                upsert.setDouble(idx, value);
-            }
-        }
-
-        @Override
-        public void flush(boolean endOfInput) { }
-
-        @Override
-        public void close() throws Exception {
-            try (Connection c = connection; PreparedStatement p = upsert) { }
+    private static void setNullableDouble(PreparedStatement ps, int idx, Double value) throws SQLException {
+        if (value == null || value.isNaN()) {
+            ps.setNull(idx, Types.DOUBLE);
+        } else {
+            ps.setDouble(idx, value);
         }
     }
 }
