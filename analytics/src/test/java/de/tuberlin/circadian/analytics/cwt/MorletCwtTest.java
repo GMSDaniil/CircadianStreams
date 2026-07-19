@@ -62,4 +62,32 @@ class MorletCwtTest {
 
         assertEquals(0.0, cwt.circadianRhythmIndex(flat, 20.0, 28.0), 1e-12);
     }
+
+    @Test
+    void fastFrequencyDomainCriEqualsExactCri() {
+        int n = 7200; // 5 days
+        MorletCwt cwt = new MorletCwt(n, DT, 6.0, 0.5, 48.0, 8);
+        java.util.Random rng = new java.util.Random(42);
+
+        double[][] signals = new double[5][n];
+        for (int i = 0; i < n; i++) {
+            double tH = i * DT;
+            signals[0][i] = 5.0 + 3.0 * Math.cos(2.0 * Math.PI * tH / 24.0);                 // clean 24h
+            signals[1][i] = Math.cos(2.0 * Math.PI * tH / 12.0);                             // 12h only
+            signals[2][i] = 0.3 * Math.cos(2.0 * Math.PI * tH / 24.0) + rng.nextGaussian();  // weak rhythm + noise
+            signals[3][i] = Math.cos(2 * Math.PI * tH / 24) + 0.5 * Math.cos(2 * Math.PI * tH / 12)
+                    + 0.2 * Math.cos(2 * Math.PI * tH / 8);                                   // multi-component
+            signals[4][i] = rng.nextGaussian();                                              // pure noise
+        }
+
+        double[][] bands = {{20.0, 28.0}, {10.0, 14.0}};
+        for (double[] band : bands) {
+            for (double[] s : signals) {
+                double exact = cwt.circadianRhythmIndex(s, band[0], band[1]);
+                double fast = cwt.circadianRhythmIndexFast(s, band[0], band[1]);
+                assertEquals(exact, fast, 1e-9,
+                        "band [" + band[0] + "," + band[1] + "] exact=" + exact + " fast=" + fast);
+            }
+        }
+    }
 }

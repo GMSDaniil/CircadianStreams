@@ -16,6 +16,12 @@ public final class MorletCwt {
     private final double[][] psiHat;    // [scale][freqBin] real frequency-domain wavelet
     private final DoubleFFT_1D fft;
 
+    // Pre-aggregated per-frequency scale weights for the fast CRI
+    private final double[] gTotal;
+    private double[] gBand;
+    private double cachedBandLo = Double.NaN;
+    private double cachedBandHi = Double.NaN;
+
     /**
      * @param n               window length (samples)
      * @param dtHours         sample spacing in hours (1-min aggregates => 1/60)
@@ -57,6 +63,14 @@ public final class MorletCwt {
                     double arg = s * w - omega0;
                     psiHat[j][k] = norm * Math.exp(-0.5 * arg * arg);
                 } // else 0: the analytic wavelet has no negative-frequency support
+            }
+        }
+
+        // Collapse the total-power scale sum into one per-frequency weight so the CRI denominator is a single dot product at run time (sum_s |psiHat_s|^2), instead of a sum over all scales.
+        this.gTotal = new double[n];
+        for (int j = 0; j < numScales; j++) {
+            for (int k = 0; k < n; k++) {
+                gTotal[k] += psiHat[j][k] * psiHat[j][k];
             }
         }
     }
@@ -123,5 +137,61 @@ public final class MorletCwt {
             }
         }
         return totalPower > 0.0 ? bandPower / totalPower : 0.0;
+    }
+
+    /**
+     * Same CRI, computed directly in the frequency domain — no inverse FFTs, and no per-scale loop. Two identities collapse the work:
+     *
+     * <ul>
+     *   <li><b>Parseval:</b> the time-summed power of scale {@code s} equals {@code (1/N) * sum_omega |X(omega)|^2 * |psiHat_s(omega)|^2}; the {@code 1/N} is the same for every scale, so it cancels in the band/total ratio.</li>
+     *   <li><b>Linearity:</b> the numerator and denominator are linear in {@code |X(omega)|^2}, so the scale sums fold into two fixed per-frequency weights,
+     *       {@code gBand(omega)=sum_{s in band}|psiHat_s|^2} and {@code gTotal(omega)=sum_s|psiHat_s|^2}, precomputed once from the wavelet bank.</li>
+     * </ul>
+     */
+    public double circadianRhythmIndexFast(double[] signal, double bandLowHours, double bandHighHours) {
+        if (signal.length != n)
+            throw new IllegalArgumentException("signal length " + signal.length + " != window " + n);
+
+        ensureBandWeights(bandLowHours, bandHighHours);
+
+        double mean = 0.0;
+        for (double v : signal)
+            mean += v;
+
+        mean /= n;
+
+        double[] spectrum = new double[2 * n];
+        for (int i = 0; i < n; i++) 
+            spectrum[2 * i] = signal[i] - mean;
+
+        fft.complexForward(spectrum); // one forward FFT
+
+        double bandPower = 0.0;
+        double totalPower = 0.0;
+        for (int k = 0; k < n; k++) {
+            double re = spectrum[2 * k];
+            double im = spectrum[2 * k + 1];
+            double p = re * re + im * im;      // |X(omega)|^2
+            bandPower += p * gBand[k];
+            totalPower += p * gTotal[k];
+        }
+        return totalPower > 0.0 ? bandPower / totalPower : 0.0;
+    }
+
+    private void ensureBandWeights(double bandLowHours, double bandHighHours) {
+        if (gBand != null && bandLowHours == cachedBandLo && bandHighHours == cachedBandHi)
+            return;
+
+        double[] w = new double[n];
+        for (int j = 0; j < periods.length; j++) {
+            if (periods[j] >= bandLowHours && periods[j] <= bandHighHours) {
+                double[] g = psiHat[j];
+                for (int k = 0; k < n; k++) 
+                    w[k] += g[k] * g[k];
+            }
+        }
+        this.gBand = w;
+        this.cachedBandLo = bandLowHours;
+        this.cachedBandHi = bandHighHours;
     }
 }

@@ -10,7 +10,7 @@ import de.tuberlin.circadian.pipeline.source.SyntheticSource;
 import de.tuberlin.circadian.pipeline.source.VitalsSource;
 import de.tuberlin.circadian.pipeline.stage.AggregateRecordKey;
 import de.tuberlin.circadian.pipeline.stage.CosinorStage;
-import de.tuberlin.circadian.pipeline.stage.LongWindowStage;
+import de.tuberlin.circadian.pipeline.stage.LongWindowRollingStage;
 import de.tuberlin.circadian.pipeline.stage.Stage2Aggregate;
 import de.tuberlin.circadian.pipeline.validation.RangeValidator;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -66,8 +66,8 @@ public final class PipelineJob {
         // Stage 3a: sliding 24h/1h Cosinor.
         DataStream<CircadianMetric> cosinor = agg.keyBy(new AggregateRecordKey()).window(SlidingEventTimeWindows.of(Duration.ofHours(config.cosinorHours), Duration.ofHours(config.hopHours))).process(new CosinorStage(config.cosinorHours, config.cosinorMinCoverage)).name("stage3a-cosinor");
 
-        // Stage 3b/c: sliding 5d/1h CWT (CRI) + IS/IV.
-        DataStream<CircadianMetric> longMetrics = agg.keyBy(new AggregateRecordKey()).window(SlidingEventTimeWindows.of(Duration.ofHours(config.cwtDays * 24L), Duration.ofHours(config.hopHours))).process(new LongWindowStage(config)).name("stage3b-cwt-isiv");
+        // Stage 3b/c: 5-day rolling CWT (CRI) + IS/IV via ONE per-key buffer instead of ~120x replicated sliding panes
+        DataStream<CircadianMetric> longMetrics = agg.keyBy(new AggregateRecordKey()).process(new LongWindowRollingStage(config)).name("stage3b-cwt-isiv");
 
         cosinor.union(longMetrics).sinkTo(new CircadianMetricsSink(config)).name("circadian-metrics-sink");
 

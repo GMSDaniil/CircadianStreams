@@ -74,7 +74,7 @@ public final class LongWindowStage extends ProcessWindowFunction<AggregateRecord
         Instant windowEnd = Instant.ofEpochMilli(ctx.window().getEnd());
         String[] parts = key.split("\\|", 2);
 
-        double cri = cwt.circadianRhythmIndex(series, config.bandLowHours, config.bandHighHours);
+        double cri = cwt.circadianRhythmIndexFast(series, config.bandLowHours, config.bandHighHours);
         out.collect(CircadianMetric.cwt(parts[0], parts[1], windowEnd, cri));
 
         if (config.enableIsIv) {
