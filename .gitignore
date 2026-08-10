@@ -49,8 +49,9 @@ evaluation/figures/
 
 light-ceiling.html
 
-# --- Real patient / PHI data — NEVER commit (keep exports OUTSIDE the repo) ---
+# --- Real patient data ---
 *numeric_export*.csv
 *.phi.csv
 /patient-data/
 /data/
+/evaluation

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Circadian Patient Overview</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <h1>Circadian Patient Overview</h1>
+        <p class="sub">Real-time ICU rhythm metrics · Cosinor · CWT · IS/IV</p>
+      </div>
+    </div>
+    <div class="controls">
+      <label>Patient
+        <select id="patient"></select>
+      </label>
+      <label>Signal
+        <select id="signal"></select>
+      </label>
+      <span class="freshness" title="Auto-refreshes every 45 s">
+        <span id="freshdot" class="fresh-dot"></span><span id="freshness">loading…</span>
+      </span>
+    </div>
+  </header>
+
+  <main id="app">
+    <section id="status" class="status-banner none" hidden></section>
+    <section id="stats" class="stat-row"></section>
+
+    <section class="card wide">
+      <h2>1-minute median <span class="hint">day/night shaded · disruptions marked</span></h2>
+      <div id="median" class="plot"></div>
+    </section>
+
+    <section class="card wide">
+      <h2>CWT scalogram <span class="hint">period × time power · circadian band highlighted</span></h2>
+      <div id="scalogram" class="plot tall"></div>
+    </section>
+
+    <section class="card wide">
+      <h2>Dynamic Lighting Therapy <span class="hint">proposed 24 h light ceiling from this rhythm · bright blue-enriched day, dim warm night</span></h2>
+      <div id="lighttherapy" class="plot"></div>
+    </section>
+
+    <div class="grid2">
+      <section class="card">
+        <h2>Cosinor amplitude <span class="hint">rhythm strength</span></h2>
+        <div id="amp" class="plot"></div>
+      </section>
+      <section class="card">
+        <h2>Cosinor goodness-of-fit <span class="hint">R²</span></h2>
+        <div id="r2" class="plot"></div>
+      </section>
+      <section class="card">
+        <h2>CWT — Circadian Rhythm Index <span class="hint">CRI</span></h2>
+        <div id="cri" class="plot"></div>
+      </section>
+      <section class="card">
+        <h2>Non-parametric <span class="hint">IS (stability) · IV (fragmentation)</span></h2>
+        <div id="isiv" class="plot"></div>
+      </section>
+    </div>
+
+    <p id="empty" class="empty" hidden>No data for this patient/signal.</p>
+  </main>
+
+  <div id="loading" class="loading"><div class="spinner"></div></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

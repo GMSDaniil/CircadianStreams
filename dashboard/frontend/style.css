@@ -1,0 +1,261 @@
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
+
+:root {
+  --bg: #f5fbff;          /* blue-000 */
+  --surface: #ffffff;     /* card */
+  --surface-2: #f1f5f9;   /* slate-200 (muted) */
+  --border: #e1e7f0;      /* slate-300 */
+  --ink: #0a2043;         /* foreground (navy) */
+  --ink-dim: #475569;     /* slate-600 (secondary text) */
+  --ink-muted: #64748b;   /* slate-500/600 (labels) */
+  --primary: #1b426a;     /* primary blue */
+  --accent: #2f6f95;      /* sky accent */
+  --ring: #5cb3d6;        /* blue-500 */
+  --grid: #e8eef5;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow-card: 0 10px 28px rgba(16, 32, 67, 0.07);
+
+  --good: #15803d;  --good-bg: #dcfce7;
+  --warn: #b45309;  --warn-bg: #fef3c7;
+  --crit: #b91c1c;  --crit-bg: #fee2e2;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 'Satoshi', 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.brand { 
+  display: flex; 
+  align-items: center; 
+  gap: 14px; 
+}
+.brand .dot {
+  width: 12px;
+  height: 12px; 
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px rgba(27, 66, 106, 0.12);
+}
+.brand h1 { 
+  margin: 0; 
+  font-size: 18px; 
+  font-weight: 700; 
+  letter-spacing: -0.01em; 
+  color: var(--ink); 
+}
+.brand .sub { 
+  margin: 2px 0 0; 
+  font-size: 12.5px; 
+  color: var(--ink-muted); 
+}
+
+.controls { 
+  display: flex; 
+  gap: 16px; 
+}
+.controls label {
+  display: flex; 
+  flex-direction: column; 
+  gap: 5px;
+  font-size: 11px; 
+  font-weight: 700; 
+  text-transform: uppercase; 
+  letter-spacing: 0.12em; 
+  color: var(--primary);
+}
+.controls select {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font: inherit; font-size: 14px;
+  min-width: 170px; cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.controls select:hover { 
+  border-color: var(--ring); 
+}
+.controls select:focus { 
+  outline: none; 
+  border-color: var(--ring); 
+  box-shadow: 0 0 0 3px rgba(92, 179, 214, 0.3); 
+}
+
+.freshness { 
+  align-self: flex-end; 
+  display: flex; 
+  align-items: center; 
+  gap: 7px; 
+  padding-bottom: 9px; 
+  font-size: 12px; 
+  color: var(--ink-muted); 
+}
+.fresh-dot { 
+  width: 8px; 
+  height: 8px; 
+  border-radius: 50%; 
+  background: var(--good); 
+  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.15); 
+  transition: background 200ms; 
+}
+.fresh-dot.stale { 
+  background: var(--warn); 
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.15); 
+}
+
+main { 
+  padding: 20px 28px 60px; 
+  max-width: 1500px; 
+  margin: 0 auto; 
+}
+
+.status-banner {
+  display: flex; 
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--ink-muted);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 14px 20px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow-card);
+}
+.status-banner .badge {
+  display: inline-flex; 
+  align-items: center; 
+  gap: 8px;
+  font-weight: 700; 
+  font-size: 15px;
+  padding: 6px 14px; 
+  border-radius: 999px;
+}
+.status-banner .badge .ic { width: 16px; height: 16px; }
+.status-banner .reason { color: var(--ink-dim); font-size: 13.5px; }
+.status-banner.good  { border-left-color: var(--good); }
+.status-banner.good  .badge { background: var(--good-bg); color: var(--good); }
+.status-banner.warn  { border-left-color: var(--warn); }
+.status-banner.warn  .badge { background: var(--warn-bg); color: var(--warn); }
+.status-banner.crit  { border-left-color: var(--crit); }
+.status-banner.crit  .badge { background: var(--crit-bg); color: var(--crit); }
+.status-banner.none  .badge { background: var(--surface-2); color: var(--ink-muted); }
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+}
+.stat .label { 
+  font-size: 11px; 
+  font-weight: 700; 
+  text-transform: uppercase; 
+  letter-spacing: 0.1em; 
+  color: var(--ink-muted); 
+}
+.stat .value { 
+  font-size: 25px; 
+  font-weight: 700; 
+  margin-top: 5px; 
+  color: var(--ink); 
+  font-variant-numeric: tabular-nums; 
+}
+.stat .value small { 
+  font-size: 13px; 
+  font-weight: 500; 
+  color: var(--ink-dim); 
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px 8px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow-card);
+}
+.card h2 { 
+  margin: 0 0 8px; 
+  font-size: 14px; 
+  font-weight: 700; 
+  color: var(--ink); 
+}
+.card h2 .hint { 
+  font-weight: 400; 
+  color: var(--ink-muted); 
+  font-size: 12px; 
+  margin-left: 6px; 
+}
+
+.grid2 { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 18px; 
+}
+@media (max-width: 900px) { 
+  .grid2 { 
+    grid-template-columns: 1fr; 
+  } 
+}
+
+.plot { 
+  width: 100%; 
+  height: 260px; 
+}
+.plot.tall { 
+  height: 380px; 
+}
+
+.empty { 
+  color: var(--ink-muted); 
+  text-align: center; 
+  padding: 60px; 
+}
+
+.loading {
+  position: fixed;
+  inset: 66px 0 0 0;
+  display: none;
+  place-items: center;
+  background: rgba(245, 251, 255, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 20;
+}
+.loading.show { display: grid; }
+.spinner {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 3px solid rgba(27, 66, 106, 0.18);
+  border-top-color: var(--primary);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

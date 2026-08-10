@@ -3,10 +3,8 @@ package de.tuberlin.circadian.analytics.cwt;
 import org.jtransforms.fft.DoubleFFT_1D;
 
 /**
- * Hand-written continuous wavelet transform with a complex Morlet wavelet. There is no
- * production-quality CWT library for Java, so this implements the FFT/convolution-theorem approach
- * (Torrence &amp; Compo, 1998): the signal is transformed once, multiplied by the analytic
- * frequency-domain wavelet at each scale, and inverse-transformed.
+ * Hand-written continuous wavelet transform with a complex Morlet wavelet. There is no production-quality CWT library for Java, so this implements the FFT/convolution-theorem approach
+ * (Torrence &amp; Compo, 1998): the signal is transformed once, multiplied by the analytic frequency-domain wavelet at each scale, and inverse-transformed.
  */
 public final class MorletCwt {
 

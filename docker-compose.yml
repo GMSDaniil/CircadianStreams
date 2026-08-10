@@ -53,14 +53,14 @@ services:
     container_name: circadian-postgres
     restart: unless-stopped
     ports:
-      - "5544:5432"   # host 5544 -> container 5432 (avoids host-native Postgres on 5432)
+      - "5544:5432"
     environment:
       POSTGRES_USER: circadian
       POSTGRES_PASSWORD: circadian
       POSTGRES_DB: circadian
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./sql/init:/docker-entrypoint-initdb.d:ro   # schema applied on first start
+      - ./sql/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U circadian -d circadian"]
       interval: 5s
@@ -80,8 +80,8 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro   # provisioned dashboard JSON
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards   # provisioned dashboard JSON
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
       interval: 10s
@@ -109,7 +109,7 @@ services:
     container_name: circadian-jobmanager
     restart: unless-stopped
     ports:
-      - "8081:8081" # Flink Web UI
+      - "18081:8081"
     command: jobmanager
     environment:
       - |
@@ -123,7 +123,7 @@ services:
       - STATE_BACKEND=rocksdb
       - CHECKPOINT_DIR=file:///flink-checkpoints
     volumes:
-      - ./pipeline/target:/jars:ro # the built job jar, for `flink run`
+      - ./pipeline/target:/jars # the built job jar, for `flink run`
       - flink-checkpoints:/flink-checkpoints # shared checkpoint storage
     depends_on:
       kafka:

@@ -1,0 +1,23 @@
+# Long mixed cohort for RQ3 (Exp D) — sized so the 5-day CWT window fills, so CRI and IS/IV
+# (not just Cosinor) can be tested for preserved-vs-disrupted separation.
+#   preserved: P0001-P0003 (no disruption)   disrupted: P0004-P0006 (amplitude drop from day 6)
+# Per-patient amplitude scaling still varies rhythm strength, so the groups overlap in baseline
+# amplitude and the separation must come from the disruption — a realistic, non-trivial test.
+name: cohort_long
+description: 9 days; 6-patient cohort, amplitude drop on P0004-P0006 from day 6 (Exp D / RQ3, CWT-capable).
+patients: 6
+simHours: 216
+rateHz: 0.1
+fidelity:
+  noiseCorrelation: 0.8
+  artifactRate: 0.001
+  amplitudeScaleMin: 0.3
+  amplitudeScaleMax: 1.0
+disruptions:
+  - patients: [P0004, P0005, P0006]
+    signals: [HR, ABP_SYS]
+    type: amplitude_drop
+    startHour: 144      # onset at day 6 (5-day CWT window already full)
+    endHour: 216
+    magnitude: 0.3      # flatten to 30% of baseline amplitude
+    rampHours: 24

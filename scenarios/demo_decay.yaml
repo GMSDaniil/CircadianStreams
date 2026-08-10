@@ -1,0 +1,20 @@
+# Dashboard screenshot demo: two patients on the same signal (HR) for a side-by-side scalogram figure.
+#   P0001 — healthy throughout          -> the "healthy rhythm" scalogram (constant bright 24 h band)
+#   P0002 — healthy, then HR amplitude decays to ~5% from ~day 5.5 -> the "decaying rhythm" scalogram
+#           (the band fades as the rhythm collapses). endHour is far beyond the record so it decays and
+#           STAYS decayed (no ramp-out recovery).
+name: demo_decay
+description: Two-patient HR demo for dashboard scalogram screenshots — healthy (P0001) vs decaying (P0002).
+patients: 2
+simHours: 336            # 14 days -> long healthy stretch then a long visible decay
+rateHz: 0.1
+fidelity:
+  noiseCorrelation: 0.7  # smooth correlated noise; no artifacts/missingness for a clean figure
+disruptions:
+  - patients: [P0002]
+    signals: [HR]
+    type: amplitude_drop
+    startHour: 130       # ~day 5.4: healthy for the first ~40% of the width
+    endHour: 100000      # never within the record -> monotonic decay, no recovery
+    magnitude: 0.05      # flatten to ~5% of baseline amplitude (band nearly vanishes)
+    rampHours: 190       # gradual decay over ~8 days
