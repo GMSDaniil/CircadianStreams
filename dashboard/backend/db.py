@@ -4,7 +4,7 @@ import psycopg2.extras
 
 DSN = dict(
     host=os.getenv("PGHOST", "localhost"),
-    port=int(os.getenv("PGPORT", "5544")),
+    port=int(os.getenv("PGPORT", "5545")),
     dbname=os.getenv("PGDATABASE", "circadian"),
     user=os.getenv("PGUSER", "circadian"),
     password=os.getenv("PGPASSWORD", "circadian"),
